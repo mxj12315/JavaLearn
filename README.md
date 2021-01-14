@@ -1404,3 +1404,127 @@ public class User {
 }
 ```
 
+### 函数的传递参数
+
+传递基本类型的参数不会修改原来的值
+
+```java
+package com.minsusu.面向对象05.变量类型;
+
+public class User {
+    public static void main(String[] args) {
+		// 传递基本类型的参数
+        int i = 10;
+        increment(i);   
+        System.out.println("main1:" + i);  // 10        
+    }
+
+  
+
+    public static void increment(int i) {
+        i++;
+        System.out.println("increment:" + i);  // 11
+    }
+}
+```
+
+传递引用类型的参数，会修改原来变量中的值，传递的是引用地址
+
+```java
+package com.minsusu.面向对象05.变量类型;
+
+public class User {
+    public static void main(String[] args) {
+        // 传递引用类型参数
+        Student s = new Student();
+        s.age = 10;
+        increment(s);  //10
+        System.out.println("main2:" + s.age);  // 11
+    }
+
+    public static void increment(Student s) {
+        s.age++;
+        System.out.println("increment:" + s.age);  // 11 
+    }
+}
+```
+
+### this关键字
+
+类中带有static的方法（静态方法）中没有this
+
+类中不带static的方法（实例方法），this指向当前对象
+
+实例方法可以直接方法类成员变量和类成员方法
+
+```java
+package com.minsusu.面向对象06.this的使用;
+
+
+public class User {
+    String name = "java";  // 实例属性
+    static String _name;  // 类属性
+    public static void main(String[] args) {
+        // 访问静态方法
+        User._sum();
+
+        // 访问实例方法
+        User u = new User();
+        u.sum();
+    }
+    /**
+     * static修饰的方法中没有this
+     */
+    public static void _sum(){
+       // this.name;  // 错误的
+       // name;  // 错误
+       //  如果要访问实例变量需要new
+        User u = new User();
+        System.out.println("这是静态方法中访问实例属性"+u.name);
+    }
+	
+     /**
+     * 没有static修饰的实例方法
+     */
+    public void sum(){
+        String names = this.name;
+        // or
+        // String names = name;
+        System.out.println("这是在实例方法中访问实例属性"+names);
+    }
+
+}
+```
+
+### 继承
+
+作用：代码复用和多态
+
+java中是单继承，但是也可以间接多继承，比如C类继承B继承，B继承A类，所以C类间接继承B类和A类
+
+如果一个类没有显示的继承某一个类，那么该类继承默认继承祖宗类java.lang.Object
+
+#### 语法格式
+
+```java
+[修饰符列表] class 类名 extends 父类名{
+    类体;
+}
+```
+
+#### 常见术语
+
+B继承A类：
+
+> A类：称为父类，基类，超类，superclass
+>
+> B类：称为子类、派生类subclass
+
+### 限制
+
+> 私有的属性和方法不支持继承
+>
+> 构造方法不支持继承
+>
+> 其他数据都可以继承
+
