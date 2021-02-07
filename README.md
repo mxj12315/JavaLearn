@@ -5355,3 +5355,784 @@ password=123456
 Birthday:"asgas"
 ```
 
+# 多线程
+
+三种实现方法
+
+> 继承Thread或者实现接口Runnable,重写run()
+>
+> 使用Synchronized
+>
+> 使用Callable  java8新特性，可以拿到返回结果
+
+方法区和堆内存公用，栈每一个线程有一个
+
+![多线程](F:\java学习\java notebook.assets\多线程.jpg)
+
+## 线程生命周期
+
+![线程生命周期](F:\java学习\java notebook.assets\线程生命周期-1611281912399.jpg)
+
+## 线程休眠
+
+```java
+package com.minsusu.多线程.休眠sleep;
+
+
+/**
+ * Thread.sleep(毫秒),静态方法
+ *      让当前线程休眠指定时间
+ */
+public class ThreadTestSleep {
+    public static void main(String[] args) {
+        MyTest myTest = new MyTest();
+        for (int i = 0; i < 10; i++) {
+            try {
+                Thread.sleep(1000);
+                // myTest.sleep(1000);  // 这行代码只会让main线程休眠，sleep是静态方法，会转换为Thread.sleep()
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println(Thread.currentThread().getName()+i);
+
+        }
+    }
+}
+
+class MyTest extends Thread{
+    @Override
+    public void run() {
+
+    }
+}
+
+```
+
+## 终止线程休眠
+
+```java
+package com.minsusu.多线程.休眠sleep;
+
+
+/**
+ * interrupt() 以异常的方式唤醒休眠的线程
+ */
+class ThreadTestSleep1 {
+    public static void main(String[] args) {
+        MyTest1 myTest1 = new MyTest1();
+        myTest1.start();
+
+        for (int i = 0; i < 5; i++) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println(Thread.currentThread().getName()+i);
+
+        }
+        myTest1.interrupt(); // 以异常的方式终止线程的休眠 java.lang.InterruptedException: sleep interrupted
+    }
+}
+
+class MyTest1 extends Thread{
+
+    // run方法中异常只能使用try catch,子类异常不能比父类广
+    @Override
+    public void run() {
+        System.out.println("MyTest1线程---》Start");
+        try {
+            // 休眠1年
+            Thread.sleep(1000*60*60*24*365);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("MyTest1线程---》end");
+    }
+}
+```
+
+## 终止线程
+
+```java
+package com.minsusu.多线程.终止线程升级版;
+
+public class Mytest implements Runnable {
+    private boolean flag = true;  //打一个标记，用于终止线程
+
+    public boolean isFlag() {
+        return flag;
+    }
+
+    public void setFlag(boolean flag) {
+        this.flag = flag;
+    }
+
+    @Override
+    public void run() {
+        for (int i = 0; i < 10; i++) {
+            if (flag) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println(i);
+            }else {
+                return;
+        }
+    }
+
+
+}
+}
+```
+
+```java
+package com.minsusu.多线程.终止线程升级版;
+
+
+/**
+ * thread.stop(); // 强行终止线程，容易造成数据丢失，不建议使用
+ */
+public class ThreadTest {
+
+
+    public static void main(String[] args) {
+        Mytest m  = new Mytest();
+        Thread thread  = new Thread(m);
+
+        thread.start();
+
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+
+        // 终止线程执行
+        m.setFlag(false);
+    }
+}
+```
+
+## 线程的调度
+
+调整优先级
+
+```java
+实例方法：
+void setPrioroty(int newPriority);//设置线程优先级
+int getPriorty();//获取线程优先级
+
+最低优先级 1 
+默认优先级5
+最高优先级10;
+
+静态方法：
+/**
+* 暂停当前正在执行的线程对象，并执行其他线程
+*/  
+Static void yield(); // 让位方法
+
+```
+
+合并线程
+
+```java
+// 实例方法
+void join();
+```
+
+## 线程安全
+
+存在安全问题的条件
+
+> 条件1：多线程
+>
+> 条件2：数据共享
+>
+> 条件3：有共享数据修改行为发生
+
+如何解决线程安全问题
+
+> 同步线程模型：线程排队执行（不能并发），这种机制称为线程同步机制，t1和t2需要相互等待
+>
+> 异步线程模型：t1和t2同步执行，不需要相互等待，效率高
+
+java中的三大变量，线程安全问题
+
+> 实例变量：同一个对象存在
+>
+> 静态变量：同一个类创建的对象都存在
+>
+> 局部变量、常量：不存在线程安全
+
+如果使用变量为局部变量时：
+
+> 建议使用StringBuilder,因为局部变量不存在线程安全问题
+>
+> ArrayList非线程安全
+>
+> Vector线程安全
+>
+> HashMap / HashSet非线程安全
+>
+> Hashtable线程安全
+
+Synchronized三种写法
+
+```java
+第一种：同步代码块
+    Synchronized(线程共享对象){
+}；
+    
+第二种：实例方法上使用Synchronized
+    表示共享的对象一定是this，并且同步代码块是方法整体
+    
+第三种：在静态方法上使用Synchronized
+    表示类锁
+    类锁永远只有一把
+    创建N个对象，类锁只有一把
+    
+在开发中Synchronized不要嵌套使用，防止出现死锁
+```
+
+死锁
+
+![死锁](F:\java学习\java notebook.assets\死锁.jpg)
+
+`test`
+
+```java
+package com.minsusu.多线程.多线程安全问题08.死锁;
+
+
+/**
+ * t1 在使用O1对象时未释放，接着要使用o2，但是o2倍t2线程锁住，o2又要使用o1，o1还在被t1线程锁着，形成僵持
+ */
+public class Test {
+    public static void main(String[] args) {
+        Object o1 =new Object();
+        Object o2 =new Object();
+
+        MyClass01 m1 = new MyClass01(o1,o2);
+        MyClass02 m2 = new MyClass02(o1,o2);
+
+        Thread t1 = new Thread(m1);
+        Thread t2 = new Thread(m2);
+
+        t1.start();
+        t2.start();
+    }
+}
+```
+
+`MyClass02`
+
+```java
+package com.minsusu.多线程.多线程安全问题08.死锁;
+
+public class MyClass02 implements Runnable{
+
+    private  Object o1;
+    private Object o2;
+
+    public MyClass02(Object o1, Object o2) {
+        this.o1 = o1;
+        this.o2 = o2;
+    }
+
+    @Override
+    public void run() {
+            synchronized (o2){
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                synchronized (o1){
+
+                }
+            }
+    }
+}
+```
+
+`Myclass01`
+
+```java
+package com.minsusu.多线程.多线程安全问题08.死锁;
+
+public class MyClass01 implements Runnable{
+    private  Object o1;
+    private Object o2;
+
+    public MyClass01(Object o1, Object o2) {
+        this.o1 = o1;
+        this.o2 = o2;
+    }
+
+    @Override
+    public void run() {
+        synchronized (o1){
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            synchronized (o2){
+
+            }
+        }
+    }
+}
+```
+
+## 守护线程
+
+```java
+package com.minsusu.多线程.守护线程;
+
+
+/**
+ * 守护线程
+ *      所有的主线程结束了，子线程自动结束
+ */
+public class ThreadTest {
+    public static void main(String[] args) {
+        //main线程模拟用户线程
+        Mytest t1 = new Mytest();
+        t1.setName("t1");
+        t1.setDaemon(true); // 开启守护线程
+        t1.start();
+
+        for (int i = 0; i < 10; i++) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println(Thread.currentThread().getName()+"=="+i);
+        }
+    }
+}
+
+
+
+class Mytest extends Thread{
+    @Override
+    public void run() {
+        // 子进程
+        int i= 0;
+        while (true){
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            System.out.println(Thread.currentThread().getName()+"进程"+i++);
+        }
+    }
+}
+```
+
+## 定时器
+
+```java
+package com.minsusu.多线程.Timer定时器;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Timer;
+import java.util.TimerTask;
+
+public class TimerTest {
+    public static void main(String[] args) {
+        Timer timer = new Timer();
+
+        SimpleDateFormat s = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss");
+        try {
+          Date date =s.parse("2021-01-22 16:37:00");
+          //schedule(定时任务，第一次执行时间，间隔多久)
+          timer.schedule(new LogTask(),date,1000*10);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+
+class LogTask extends TimerTask{
+
+    @Override
+    public void run() {
+        SimpleDateFormat s = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss");
+        String formatTime = s.format(new Date());
+        System.out.println(formatTime + " 定时任务！");
+    }
+}
+```
+
+## callable
+
+```java
+package com.minsusu.多线程.Callable实现多线程09;
+
+
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
+
+public class CallableTest {
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+        FutureTask futureTask = new FutureTask(new Callable() {
+            @Override
+            public Object call() throws Exception {
+                System.out.println("begin");
+                Thread.sleep(1000*10);
+                System.out.println("end");
+                return 100;
+            }
+        });
+
+        Thread t = new Thread(futureTask);
+        t.start();
+        
+        // 拿到t线程的返回值
+        Object O = futureTask.get(); // get方法会导致获取结果过程中 main方法阻塞
+
+        System.out.println("hello world");
+    }
+}
+```
+
+# Swing程序设计
+
+## JFrame窗体
+
+```java
+package com.minsusu.Swing程序设计;
+
+import javax.swing.*;
+import java.awt.*;
+
+
+/**
+ * JFrame窗体
+ */
+public class SwingTest01 extends JFrame {
+    public static void main(String[] args) {
+        SwingTest01 sw = new SwingTest01();
+        sw.CreateJFrame("这是创建的窗体");
+
+    }
+    public void CreateJFrame(String title){
+        // 创建JFrame对象容器
+        JFrame jf =new JFrame(title);
+        // 获取一个容器，将窗体转化为容器
+        Container container=jf.getContentPane();
+        // 创建一个JLabel标签
+        JLabel jLabel = new JLabel("这是一个JFrame窗体");
+        // 使标签中的文本居中
+        jLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        // 将标签添加到容器
+        container.add(jLabel);
+        // 设置容器的背景色
+        container.setBackground(Color.white);
+        // 设置容器可见
+        jf.setVisible(true);
+        // 设置容器的尺寸
+        jf.setSize(200,150);
+        // 设置容器的关闭方式
+        jf.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+
+    }
+}
+```
+
+## JDialog窗体
+
+```java
+package com.minsusu.Swing程序设计;
+
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+/**
+ * JDialog窗体
+ *  弹出框
+ */
+public class SwingTest02 extends JFrame {
+    /**
+     * 构造方法
+     */
+    public SwingTest02(){
+        // 创建一个一个窗体，getContentPane（）转化为一个容器
+        Container container = this.getContentPane();
+        // 设置此容器的布局管理器
+        container.setLayout(null);
+        // 创建一个标签组件
+        JLabel jLabel = new JLabel("这是一个JFrame窗体");
+        // 设置标签中文字的位置
+        jLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        // 将组件添加到容器中
+        container.add(jLabel);
+        // 创建一个JButton组件
+        JButton jButton =new JButton("弹出对话框");
+        // 移动组件并调整其大小。
+        jButton.setBounds(50,200,100,21);
+        // 为组建添加监听事件：鼠标单击,使用匿名内部类
+        jButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // 使得MyJDialog窗体可见,wingTest02.this指内部类addActionListener括号中的匿名类
+                new MyJDialog(SwingTest02.this).setVisible(true);
+            }
+        });
+        container.add(jButton);
+        this.setVisible(true);
+        System.out.println(this);
+        this.setSize(500,600);
+        this.setBackground(Color.white);
+        this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+
+    }
+
+
+    public static void main(String[] args) {
+        new SwingTest02();
+    }
+}
+
+
+class  MyJDialog extends JDialog{
+    public MyJDialog(){
+
+    }
+    public MyJDialog(SwingTest02 frame){
+        // 实例化一个JDialog对象，指定其拥有者，标题，类型
+        super(frame,"第一个JDialog窗体",true);
+        // 将窗体转为容器
+        Container container =this.getContentPane();
+        // 向容器中添加组件
+        container.add(new JLabel("这是一个对话框"));
+        // 设置容器的大写
+        setBounds(300,300,100,100);
+        setSize(200,200);
+    }
+}
+```
+
+## JLabel标签
+
+```java
+package com.minsusu.Swing程序设计;
+
+import javax.swing.*;
+import java.awt.*;
+
+/**
+ * 标签JLabel和图标
+ */
+public class SwingTest03 implements Icon {
+    private int height;
+    private int width;
+    /**
+     * 无参构造
+     */
+    public SwingTest03(){    }
+
+    /**
+     *
+     */
+    public SwingTest03(int width, int height){
+        this.height = height;
+        this.width = width;
+    }
+    /**
+     * 实现指定坐标位置画图
+     * @param c 是一个具有图形表示能力的对象，可在屏幕上显示，并可与用户进行交互。典型图形用户界面中的按钮、复选框和滚动条都是组件示例。
+     * @param g 是所有图形上下文的抽象基类，允许应用程序在组件（已经在各种设备上实现）以及闭屏图像上进行绘制。
+     * @param x 位置
+     * @param y 位置
+     */
+    @Override
+    public void paintIcon(Component c, Graphics g, int x, int y) {
+        g.fillOval(x,y,this.width,this.height);
+    }
+
+    /**
+     * 获取图标的宽度
+     * @return 图标宽度
+     */
+    @Override
+    public int getIconWidth() {
+        return this.width;
+    }
+
+    /**
+     * 获取图标高度
+     * @return 图标高度
+     */
+    @Override
+    public int getIconHeight() {
+        return this.height;
+    }
+
+    /**
+     * main方法
+     * @param args String数组
+     */
+    public static void main(String[] args) {
+        SwingTest03 icon = new SwingTest03(15,15);
+        // 创建一个JLabel组件，内部水平居中
+        JLabel jLabel = new JLabel("图标",icon,SwingConstants.CENTER);
+        // 创建窗体
+        JFrame jFrame = new JFrame("图标窗体");
+        // 窗体对象转化为容器
+        Container container =jFrame.getContentPane();
+        container.add(jLabel);
+        jFrame.setSize(100,100);
+        jFrame.setVisible(true);
+        jFrame.setBackground(Color.white);
+        jFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+
+    }
+}
+```
+
+## Icon图标
+
+```java
+package com.minsusu.Swing程序设计;
+
+import jdk.internal.org.objectweb.asm.tree.MultiANewArrayInsnNode;
+
+import javax.swing.*;
+import java.awt.*;
+import java.net.URL;
+
+/**
+ * 使用图片图标
+ */
+public class SwingTest04 extends JFrame {
+    public SwingTest04(){
+        // 调用父类的getContentPane()方法
+        Container container =this.getContentPane();
+        // 创建JLabel组件
+        JLabel jLabel = new JLabel("这是一个JFrame窗体",JLabel.CENTER);
+        // 获取图片所在的URL
+        URL url = SwingTest04.class.getResource("imgButton.jpg");
+        // 实例化图片图标
+        Icon icon = new ImageIcon(url);
+        // 为JBabel标签设置图标
+        jLabel.setIcon(icon);
+        // JLabel标签的文字居中
+        jLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        // 设置标签为不透明
+        jLabel.setOpaque(true);
+        // 将标签添加到容器
+        container.add(jLabel);
+        // 设置窗体大小
+        this.setSize(250,100);
+        // 设置窗体可见
+        this.setVisible(true);
+        // 设置关闭模式
+        this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+    }
+
+    public static void main(String[] args) {
+        new SwingTest04();
+    }
+}
+```
+
+## 绝对布局
+
+步骤：
+
+> ```java
+> Container.setLayout(null);  // 取消布局容器管理器，默认是边界布局管理器
+> Component.setBounds();  // 设置每个组件的大小和位置
+> ```
+
+```java
+package com.minsusu.Swing程序设计;
+
+import javax.swing.*;
+import java.awt.*;
+
+/**
+ * 绝对布局
+ */
+public class SwingTest05 extends JFrame {
+    public SwingTest05(){
+        // 设置窗体的标题
+        this.setTitle("局对布局窗体");
+        // 取消窗体的布局管理设置
+        this.setLayout(null);
+        // 设置窗体的位置大小
+        this.setBounds(0,0,200,150);
+        // 创建一个容器对象
+        Container container = this.getContentPane();
+        // 创建两个button组件
+        JButton jb1 = new JButton("按钮1");
+        JButton jb2 = new JButton("按钮2");
+        // 设置按钮大小
+        jb1.setBounds(10,30,80,30);
+        jb2.setBounds(60,70,100,30);
+        // 添加按钮到容器
+        container.add(jb1);
+        container.add(jb2);
+        // 设置可见性
+        setVisible(true);
+        // 设置关闭方式
+        this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+    }
+    public static void main(String[] args) {
+        new SwingTest05();
+    }
+}
+```
+
+## 流式布局
+
+```java
+package com.minsusu.Swing程序设计;
+
+import javax.swing.*;
+import java.awt.*;
+
+/**
+ * FlowLayout流式布局
+ */
+public class SwingTest06 extends JFrame {
+    public SwingTest06() {
+        this.setTitle("这是一个流式布局的窗体");
+        // 创建容器
+        Container container =this.getContentPane();
+        // 指定布局
+        this.setLayout(new FlowLayout(FlowLayout.CENTER,10,10));
+        // 循环添加按钮
+        for (int i = 0; i < 10; i++) {
+            container.add(new JButton("按钮"+i));
+        }
+        this.setVisible(true);
+        this.setSize(300,300);
+        this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+    }
+
+    public static void main(String[] args) {
+        new SwingTest06();
+    }
+}
+```
+
